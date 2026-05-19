@@ -2,20 +2,10 @@ import os
 from pathlib import Path
 import sys
 
-from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 from src.interview_task.config import OUTPUT_PATH
-
-
-def build_spark() -> SparkSession:
-    os.environ.setdefault("SPARK_USER", "interview")
-    return (
-        SparkSession.builder.appName("domain-data-engineer-interview-validator")
-        .master("local[*]")
-        .config("spark.sql.session.timeZone", "UTC")
-        .getOrCreate()
-    )
+from src.interview_task.spark import build_local_spark
 
 
 def main() -> int:
@@ -23,7 +13,7 @@ def main() -> int:
         print("Missing output dataset. Run `uv run python -m scripts.run_local_pipeline` first.")
         return 1
 
-    spark = build_spark()
+    spark = build_local_spark("domain-data-engineer-interview-validator")
     try:
         df = spark.read.parquet(str(OUTPUT_PATH))
 
