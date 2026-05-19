@@ -1,0 +1,22 @@
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.DS_Store
+.venv/
+venv/
+dist/
+build/
+*.egg-info/
+
+# Mage
+.mage_data/
+
+# Spark outputs
+data/output/
+data/checkpoints/
+spark-warehouse/
+metastore_db/
+
+# Local env files
+.env
+.env.*

@@ -1,0 +1,6 @@
+project_type: standalone
+project_uuid: domain-data-engineer-interview
+variables_dir: .mage_data
+pipelines:
+  - name: order_events_pipeline
+    uuid: order_events_pipeline

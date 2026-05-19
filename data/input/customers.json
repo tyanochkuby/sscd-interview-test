@@ -1,0 +1,6 @@
+[
+  {"customer_id": "c-001", "customer_name": "Acme Retail", "customer_segment": "SMB"},
+  {"customer_id": "c-002", "customer_name": "Northwind", "customer_segment": "Enterprise"},
+  {"customer_id": "c-003", "customer_name": "Globex", "customer_segment": "Enterprise"},
+  {"customer_id": "c-004", "customer_name": "Soylent Market", "customer_segment": "SMB"}
+]
