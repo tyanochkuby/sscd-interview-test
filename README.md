@@ -1,32 +1,32 @@
-# Domain Data Engineer Interview Task
+# Candidate Task: Domain Data Engineer
 
-This repository is a starter kit for a practical interview task around domain data engineering.
+This repository contains a practical data engineering task.
 
-It gives the candidate a ready-to-run structure for:
+Your goal is to complete a small local pipeline that:
 
-- orchestration in Mage
-- transformation in PySpark
-- writing curated data in a lakehouse-friendly table format
-- validating the final analytical result locally
+- ingests raw order events
+- transforms them with PySpark
+- writes a curated analytics-friendly dataset
+- validates the final result locally
 
-It is intentionally **not a finished solution**. The candidate should complete the business logic and make design decisions during the interview.
+The project is intentionally incomplete. You are expected to implement the missing business logic and make reasonable design decisions.
 
 ## Scenario
 
-The business domain produces raw order events. These events land as JSON files in S3.
+The business domain produces raw order events. In production, these events would arrive as JSON files in S3.
 
-The task is to build a simple pipeline in Mage that:
+For this task, the same data is provided locally under `data/input/`.
+
+You need to build or complete a pipeline that:
 
 - loads raw order events
-- transforms them with PySpark
-- writes the curated result in a table format suitable for analytics and updates
-- exposes data that could later be queried from Athena and used in Sisense
+- derives the latest state for each order
+- produces a curated dataset suitable for analytics and future upserts
+- supports a downstream query such as: top 5 customers by shipped order amount
 
-For local interview work, this repository uses files under `data/input/` instead of real S3.
+## What You Should Do
 
-## What the candidate should do
-
-### Step A: Orchestration and ingest
+### 1. Orchestration and ingest
 
 Create or complete a Mage pipeline with three blocks:
 
@@ -34,7 +34,7 @@ Create or complete a Mage pipeline with three blocks:
 - Transformer
 - Data Exporter
 
-Input data contains fields such as:
+The input data includes fields such as:
 
 - `order_id`
 - `customer_id`
@@ -42,49 +42,64 @@ Input data contains fields such as:
 - `status`
 - `total_amount`
 
-### Step B: Transformation and domain logic
+### 2. Transformation and domain logic
 
-Using PySpark, implement the transformation logic:
+Using PySpark, implement the transformation logic to:
 
 - filter invalid transactions where `total_amount <= 0`
 - keep only the latest status per order using `event_timestamp`
 - optionally join a small customer dictionary
 
-### Step C: Save to lakehouse table
+### 3. Save the curated result
 
-Discuss and choose **Iceberg** or **Hudi**.
+Assume the curated output should eventually live in a lakehouse table.
 
-The intended discussion point is:
+Choose and be ready to explain either `Iceberg` or `Hudi` for a production version of this pipeline.
 
-- how to support upserts for changing order status
-- how to retain historical query capabilities
-- why the chosen table format fits those needs
+Key points to think through:
 
-In this starter, the export step writes Parquet locally by default so the exercise is runnable without cloud setup. The candidate can replace or extend it with Iceberg/Hudi if the local environment supports it.
+- how you would support upserts when order status changes
+- how you would retain historical query capability
+- why your chosen table format fits those needs
+
+This starter writes Parquet locally by default so the task can run without cloud setup. If your local environment supports it, you can replace or extend that with Iceberg or Hudi, but it is also acceptable to keep the local Parquet output and explain how you would evolve it in production.
 
 Expected target shape:
 
-- primary business key: `order_id`
-- partitioning concept: `order_date`
+- business key: `order_id`
+- partition concept: `order_date`
 
-### Step D: Consumption and analytics
+### 4. Analytics and consumption
 
 Assume the curated table is later registered in AWS Glue and queried from Athena.
 
-The candidate should be able to produce a query such as:
+You should be able to produce or explain a query such as:
 
 - top 5 customers by shipped order amount
 
-Discussion topic:
+You should also be ready to discuss:
 
-- how to optimize Athena/S3-side performance for BI tools like Sisense
+- partitioning strategy
+- Parquet and compression choices
+- how to reduce scanned data volume in Athena
+- how those choices affect BI tools such as Sisense
 
-Expected intuition:
+## What Is Already Provided
 
-- proper partitioning
-- Parquet + compression
-- avoiding `SELECT *`
-- controlling scanned data volume
+- sample raw input data
+- sample customer dimension data
+- a minimal Mage-like project structure
+- a reusable PySpark transformation module with `TODO` markers
+- a local runner for the pipeline
+- a validator for the expected business outcome
+
+## What Is Intentionally Missing
+
+- final deduplication logic
+- final join logic
+- final curated output model
+- final export to Iceberg or Hudi
+- Athena DDL and production AWS wiring
 
 ## Project Structure
 
@@ -113,42 +128,31 @@ Expected intuition:
 └── README.md
 ```
 
-## What is already provided
+## Where To Work
 
-- sample raw input data
-- sample customer dimension data
-- a minimal Mage-like project structure
-- a reusable PySpark transformation module with `TODO` markers
-- a local runner for the pipeline
-- a validator for the expected business outcome
+Primary implementation points:
 
-## What is intentionally missing
-
-- final deduplication logic
-- final join logic
-- final curated output model
-- final export to Iceberg/Hudi
-- Athena DDL and production AWS wiring
+- `src/interview_task/transform.py`
+- optionally `mage_project/order_events_pipeline/*.py`
+- optionally `scripts/run_local_pipeline.py`
 
 ## Quick Start
 
 ### Prerequisites
 
-- `uv` installed
+- `uv`
 - Python `3.14`
 - Java `21` for local PySpark runs
 
-Note: Spark `4.1.1` documents support for Java `17` and `21`, with Python `3.10+`. Use JDK `21` rather than newer unsupported feature releases.
+Spark `4.1.1` supports Java `17` and `21`, with Python `3.10+`. Use JDK `21` rather than a newer unsupported Java release.
 
-### 1. Install dependencies with uv
+### 1. Install dependencies
 
 ```bash
 uv sync
 ```
 
-This creates a local `.venv` based on `pyproject.toml`.
-
-The project expects Python `3.14`, which is pinned in `.python-version`.
+This creates a local `.venv` from `pyproject.toml`.
 
 ### 2. Run the local pipeline
 
@@ -158,7 +162,7 @@ uv run python -m scripts.run_local_pipeline
 
 This reads `data/input/orders_events.jsonl` and writes output to `data/output/curated_orders`.
 
-At the start, the output will likely be incomplete because the candidate is expected to finish the implementation in `src/interview_task/transform.py`.
+Initially, the output will likely be incomplete because part of the task is to finish the implementation in `src/interview_task/transform.py`.
 
 ### 3. Validate the result
 
@@ -166,17 +170,9 @@ At the start, the output will likely be incomplete because the candidate is expe
 uv run python -m scripts.validate_results
 ```
 
-The validator checks whether the curated dataset satisfies the core business expectations.
+The validator checks whether your curated dataset satisfies the core business expectations.
 
-## Where the candidate should work
-
-Primary implementation points:
-
-- `src/interview_task/transform.py`
-- optionally `mage_project/order_events_pipeline/*.py`
-- optionally `scripts/run_local_pipeline.py`
-
-## Helpful uv commands
+## Helpful Commands
 
 ```bash
 uv sync
@@ -185,18 +181,18 @@ uv run python -m scripts.validate_results
 uv run pytest
 ```
 
-## Suggested interview flow
+## Suggested Approach
 
-1. Read the task and inspect input data.
-2. Complete the PySpark transformation.
+1. Read the task and inspect the input data.
+2. Complete the PySpark transformation logic.
 3. Run the local pipeline.
-4. Validate the result.
-5. Explain how the local Parquet export would become Iceberg or Hudi on S3.
-6. Write or discuss the Athena query for the analytical use case.
+4. Validate the output.
+5. Be ready to explain how you would move from local Parquet to Iceberg or Hudi on S3.
+6. Be ready to write or discuss the Athena query for the analytical use case.
 
-## Example Athena analytical query
+## Example Athena Query
 
-The candidate can discuss or write something equivalent to:
+Something like the following should work for the downstream use case:
 
 ```sql
 SELECT
@@ -209,16 +205,12 @@ ORDER BY shipped_revenue DESC
 LIMIT 5;
 ```
 
-## Evaluation Areas
+## What Good Output Looks Like
 
-- PySpark fluency
-- reasoning about domain events and latest-state modeling
-- understanding of upserts and historical tables
-- clarity around partitioning and file formats
-- ability to connect storage design with Athena/Sisense query performance
+By the end, you should have:
 
-## Notes for interviewer
-
-- The repository is runnable locally without AWS.
-- If desired, the interviewer can ask the candidate to explain the changes needed for real S3, Glue, Athena, and Iceberg/Hudi registration.
-- The candidate does not need to spend time scaffolding the project from zero.
+- a runnable local pipeline
+- correct latest-state modeling per `order_id`
+- invalid transactions filtered out
+- a curated output dataset that passes validation
+- a clear explanation of how you would support production upserts and Athena querying
