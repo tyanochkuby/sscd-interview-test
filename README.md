@@ -28,9 +28,17 @@ You need to build or complete a pipeline that:
 
 ### 1. Orchestration and ingest
 
-Create or complete a Mage pipeline with three blocks:
+The starter project currently has a single Mage block that does everything:
 
-- Data Loader
+- loads raw order events
+- loads the customer dictionary
+- runs the PySpark transformation
+- writes the curated dataset
+
+One task is to refactor that starter pipeline into four Mage blocks:
+
+- Data Loader for order events
+- Data Loader for customers
 - Transformer
 - Data Exporter
 
@@ -44,7 +52,7 @@ The input data includes fields such as:
 
 ### 2. Transformation and domain logic
 
-Using PySpark, implement the transformation logic to:
+The reusable transform module is intentionally incomplete. Using PySpark, implement the transformation logic to:
 
 - filter invalid transactions where `total_amount <= 0`
 - keep only the latest status per order using `event_timestamp`
@@ -88,13 +96,14 @@ You should also be ready to discuss:
 
 - sample raw input data
 - sample customer dimension data
-- a minimal Mage-like project structure
+- a real Mage OSS project structure
 - a reusable PySpark transformation module with `TODO` markers
-- a local runner for the pipeline
+- a local runner that executes the Mage pipeline
 - a validator for the expected business outcome
 
 ## What Is Intentionally Missing
 
+- the split Mage block structure for the pipeline
 - final deduplication logic
 - final join logic
 - final curated output model
@@ -111,11 +120,13 @@ You should also be ready to discuss:
 │   │   └── orders_events.jsonl
 │   └── output/
 ├── mage_project/
+│   ├── data_exporters/
+│   ├── data_loaders/
 │   ├── metadata.yaml
-│   └── order_events_pipeline/
-│       ├── data_exporter.py
-│       ├── data_loader.py
-│       └── transformer.py
+│   ├── pipelines/
+│   │   └── order_events_pipeline/
+│   │       └── metadata.yaml
+│   └── transformers/
 ├── scripts/
 │   ├── run_local_pipeline.py
 │   └── validate_results.py
@@ -133,7 +144,10 @@ You should also be ready to discuss:
 Primary implementation points:
 
 - `src/interview_task/transform.py`
-- optionally `mage_project/order_events_pipeline/*.py`
+- `mage_project/data_loaders/run_order_events_pipeline.py`
+- optionally `mage_project/data_loaders/*.py`
+- optionally `mage_project/transformers/*.py`
+- optionally `mage_project/data_exporters/*.py`
 - optionally `scripts/run_local_pipeline.py`
 
 ## Quick Start
@@ -141,7 +155,7 @@ Primary implementation points:
 ### Prerequisites
 
 - `uv`
-- Python `3.14`
+- Python `3.12`
 - Java `21` for local PySpark runs
 
 Spark `4.1.1` supports Java `17` and `21`, with Python `3.10+`. Use JDK `21` rather than a newer unsupported Java release.
@@ -160,9 +174,9 @@ This creates a local `.venv` from `pyproject.toml`.
 uv run python -m scripts.run_local_pipeline
 ```
 
-This reads `data/input/orders_events.jsonl` and writes output to `data/output/curated_orders`.
+This runs the real Mage pipeline in `mage_project/`, reads `data/input/orders_events.jsonl`, and writes output to `data/output/curated_orders`.
 
-Initially, the output will likely be incomplete because part of the task is to finish the implementation in `src/interview_task/transform.py`.
+Initially, the run may fail or the output may be incomplete because the starter pipeline is intentionally not fully refactored and the shared transform logic in `src/interview_task/transform.py` is intentionally unfinished.
 
 ### 3. Validate the result
 
@@ -184,11 +198,13 @@ uv run pytest
 ## Suggested Approach
 
 1. Read the task and inspect the input data.
-2. Complete the PySpark transformation logic.
-3. Run the local pipeline.
-4. Validate the output.
-5. Be ready to explain how you would move from local Parquet to Iceberg or Hudi on S3.
-6. Be ready to write or discuss the Athena query for the analytical use case.
+2. Run the starter Mage pipeline and inspect its current behavior.
+3. Refactor the pipeline into 2 loaders, 1 transformer, and 1 writer block.
+4. Complete the PySpark transformation logic.
+5. Run the local pipeline again.
+6. Validate the output.
+7. Be ready to explain how you would move from local Parquet to Iceberg or Hudi on S3.
+8. Be ready to write or discuss the Athena query for the analytical use case.
 
 ## Example Athena Query
 
@@ -209,7 +225,8 @@ LIMIT 5;
 
 By the end, you should have:
 
-- a runnable local pipeline
+- a runnable Mage pipeline
+- a pipeline refactored from one block into multiple Mage blocks
 - correct latest-state modeling per `order_id`
 - invalid transactions filtered out
 - a curated output dataset that passes validation

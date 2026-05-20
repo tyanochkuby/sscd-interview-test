@@ -1,0 +1,13 @@
+blocks:
+- all_upstream_blocks_executed: true
+  downstream_blocks: []
+  name: run_order_events_pipeline
+  status: not_executed
+  type: data_loader
+  upstream_blocks: []
+  uuid: run_order_events_pipeline
+name: order_events_pipeline
+run_pipeline_in_one_process: true
+type: python
+uuid: order_events_pipeline
+widgets: []

@@ -1,28 +1,34 @@
-from pathlib import Path
+import os
+import shutil
+import subprocess
+import sys
 
-from mage_project.order_events_pipeline.data_exporter import export_curated_orders
-from mage_project.order_events_pipeline.data_loader import load_order_events
-from mage_project.order_events_pipeline.transformer import transform_order_events
-from src.interview_task.config import OUTPUT_DIR
-from src.interview_task.spark import build_local_spark
+from src.interview_task.config import OUTPUT_PATH, PROJECT_ROOT
+
+
+MAGE_PROJECT_PATH = PROJECT_ROOT / "mage_project"
+PIPELINE_UUID = "order_events_pipeline"
 
 
 def main() -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env.setdefault("RUN_PIPELINE_IN_ONE_PROCESS", "True")
 
-    spark = build_local_spark("domain-data-engineer-interview")
-    try:
-        orders_df = load_order_events(spark)
-        curated_df = transform_order_events(spark, orders_df)
+    if OUTPUT_PATH.exists():
+        shutil.rmtree(OUTPUT_PATH)
 
-        print("Loaded rows:", orders_df.count())
-        print("Curated rows:", curated_df.count())
-        curated_df.show(truncate=False)
-
-        export_curated_orders(curated_df)
-        print(f"Wrote output to {Path(OUTPUT_DIR / 'curated_orders')}")
-    finally:
-        spark.stop()
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "mage_ai.cli.main",
+            "run",
+            str(MAGE_PROJECT_PATH),
+            PIPELINE_UUID,
+        ],
+        check=True,
+        env=env,
+    )
 
 
 if __name__ == "__main__":
